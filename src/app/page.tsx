@@ -38,6 +38,14 @@ interface Day {
   hasEpisode?: boolean;
 }
 
+interface ExtraDose {
+  id: string;
+  name: string;
+  dosage: string | null;
+  note: string | null;
+  takenAt: string;
+}
+
 const dayName = (iso: string) => {
   const names = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
   const d = new Date(iso + "T00:00:00");
@@ -48,18 +56,21 @@ export default function DashboardPage() {
   const [data, setData] = useState<Today | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [days, setDays] = useState<Day[] | null>(null);
+  const [extraDoses, setExtraDoses] = useState<ExtraDose[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [todayData, statsData] = await Promise.all([
+      const [todayData, statsData, extraData] = await Promise.all([
         api<Today>("/api/dashboard/today"),
         api<{ stats: Stats; days: Day[] }>("/api/statistics?range=7d"),
+        api<ExtraDose[]>("/api/extra-doses"),
       ]);
       setData(todayData);
       setStats(statsData.stats);
       setDays(statsData.days);
+      setExtraDoses(extraData);
       setError("");
     } catch (e) {
       setError((e as Error).message);
@@ -187,6 +198,9 @@ export default function DashboardPage() {
         </div>
       ))}
 
+      {/* Thuốc uống thêm */}
+      <ExtraDoseCard doses={extraDoses} onRefresh={load} />
+
       {/* Quick Stats & Mini Calendar */}
       {stats && days && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -296,6 +310,150 @@ function statusMark(status: MedStatus | null): string {
   if (status === "completed") return "✓";
   if (status === "missing_both") return "✕";
   return "½";
+}
+
+function ExtraDoseCard({
+  doses,
+  onRefresh,
+}: {
+  doses: ExtraDose[];
+  onRefresh: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [dosage, setDosage] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  async function add() {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await api("/api/extra-doses", {
+        method: "POST",
+        body: JSON.stringify({ name, dosage, note }),
+      });
+      setName("");
+      setDosage("");
+      setNote("");
+      setOpen(false);
+      onRefresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove(id: string) {
+    setDeleting(id);
+    try {
+      await api(`/api/extra-doses/${id}`, { method: "DELETE" });
+      onRefresh();
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  return (
+    <div className="card !p-3">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+          💊 Thuốc uống thêm hôm nay
+        </h3>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline"
+        >
+          {open ? "Huỷ" : "+ Thêm"}
+        </button>
+      </div>
+
+      {/* Danh sách */}
+      {doses.length === 0 && !open && (
+        <p className="text-xs text-slate-400 dark:text-slate-500 italic">
+          Chưa có thuốc nào được ghi thêm hôm nay.
+        </p>
+      )}
+      <ul className="space-y-1.5">
+        {doses.map((d) => (
+          <li
+            key={d.id}
+            className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5"
+          >
+            <div className="min-w-0">
+              <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                {d.name}
+              </span>
+              {d.dosage && (
+                <span className="ml-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  {d.dosage}
+                </span>
+              )}
+              <span className="ml-1.5 text-[10px] text-slate-400">
+                {new Date(d.takenAt).toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              {d.note && (
+                <p className="text-[10px] text-slate-400 truncate">{d.note}</p>
+              )}
+            </div>
+            <button
+              onClick={() => remove(d.id)}
+              disabled={deleting === d.id}
+              className="shrink-0 text-slate-400 hover:text-red-500 disabled:opacity-40 transition-colors"
+            >
+              ✕
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {/* Form thêm */}
+      {open && (
+        <div className="mt-2.5 space-y-2 border-t border-slate-100 dark:border-slate-800 pt-2.5">
+          <div>
+            <label className="label">Tên thuốc *</label>
+            <input
+              className="input"
+              placeholder="Ví dụ: Paracetamol, Tiffy..."
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label">Liều lượng</label>
+              <input
+                className="input"
+                placeholder="500mg, 1 viên..."
+                value={dosage}
+                onChange={(e) => setDosage(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label">Ghi chú</label>
+              <input
+                className="input"
+                placeholder="Sau khi ăn..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+          </div>
+          <button
+            onClick={add}
+            disabled={saving || !name.trim()}
+            className="btn-primary w-full !py-1.5 text-sm disabled:opacity-50"
+          >
+            {saving ? "Đang lưu..." : "💾 Lưu"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function DailyTip() {

@@ -149,3 +149,17 @@ model ReminderLog {
   @@index([date])
   @@map("reminder_logs")
 }
+
+/// Thuốc uống thêm ngoài lịch cố định (thuốc cảm, paracetamol, v.v.)
+model ExtraDose {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date   // ngày ghi nhận
+  name      String              // tên thuốc (nhập tự do)
+  dosage    String?             // liều lượng (tuỳ chọn)
+  takenAt   DateTime @default(now()) @map("taken_at")
+  note      String?             // ghi chú thêm
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([date])
+  @@map("extra_doses")
+}
