@@ -1,0 +1,6 @@
+.pgdata
+prisma/dev.db
+*.log
+start-local.sh
+stop-local.sh
+test-telegram.sh

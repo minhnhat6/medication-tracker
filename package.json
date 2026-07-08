@@ -24,7 +24,7 @@
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "motion": "^12.42.2",
-    "next": "15.1.4",
+    "next": "^15.5.20",
     "nodemailer": "^6.9.16",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
