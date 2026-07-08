@@ -1,5 +1,6 @@
 import { ok, bad, serverError } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
+import { memCache } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
         active: b.active === undefined ? true : Boolean(b.active),
       },
     });
+    memCache.invalidate("active_medicines");
     return ok({ medicine }, { status: 201 });
   } catch (e) {
     return serverError(e);

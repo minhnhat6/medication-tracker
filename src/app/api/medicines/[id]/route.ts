@@ -1,5 +1,6 @@
 import { ok, bad, serverError } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
+import { memCache } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export async function PUT(req: Request, { params }: Ctx) {
         ...(b.active !== undefined && { active: Boolean(b.active) }),
       },
     });
+    memCache.invalidate("active_medicines");
     return ok({ medicine });
   } catch (e) {
     return serverError(e);
@@ -31,6 +33,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
     const count = await prisma.medicine.count();
     if (count <= 1) return bad("Phải giữ lại ít nhất 1 thuốc.");
     await prisma.medicine.delete({ where: { id } });
+    memCache.invalidate("active_medicines");
     return ok({ deleted: true });
   } catch (e) {
     return serverError(e);
