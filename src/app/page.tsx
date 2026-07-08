@@ -149,15 +149,7 @@ export default function DashboardPage() {
             style={{ width: `${pct}%` }}
           />
         </div>
-        {nextUp ? (
-          <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400">
-            Tiếp theo: <span className="font-medium text-slate-900 dark:text-slate-100">{nextUp.which === "morning" ? "Sáng" : "Tối"}</span> lúc {nextUp.time}
-          </p>
-        ) : (
-          <p className="mt-1.5 text-xs font-medium text-green-700 dark:text-green-400">
-            Đã uống đủ thuốc hôm nay
-          </p>
-        )}
+
       </div>
 
       {/* Medicine cards */}
@@ -231,6 +223,10 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Countdown & Tips */}
+      <NextDoseCountdown nextUp={nextUp} />
+      <DailyTip />
+
       {/* Actions */}
       <div className="grid grid-cols-2 gap-2">
         <Link href="/episodes/new" className="btn-danger justify-center !py-1.5 text-sm">
@@ -300,4 +296,90 @@ function statusMark(status: MedStatus | null): string {
   if (status === "completed") return "✓";
   if (status === "missing_both") return "✕";
   return "½";
+}
+
+function DailyTip() {
+  const TIPS = [
+    "💧 Uống đủ 2 lít nước mỗi ngày giúp cơ thể trao đổi chất tốt hơn.",
+    "🛌 Ngủ đủ 7-8 tiếng mỗi đêm là liều thuốc phục hồi tuyệt vời nhất.",
+    "⏰ Nhớ uống thuốc đúng giờ để duy trì nồng độ thuốc ổn định trong máu.",
+    "🏃 Tập thể dục nhẹ nhàng 15-30 phút mỗi ngày giúp tinh thần sảng khoái.",
+    "🧘 Đừng quên thư giãn và hít thở sâu khi cảm thấy căng thẳng.",
+    "🥗 Ăn nhiều rau xanh và trái cây tươi để bổ sung vitamin tự nhiên.",
+    "📝 Ghi chép lại các lần phát bệnh giúp bác sĩ điều chỉnh thuốc chính xác hơn.",
+    "☀️ Dành 15 phút tắm nắng sáng sớm để bổ sung vitamin D tự nhiên.",
+  ];
+  const [tipIndex, setTipIndex] = useState(0);
+  
+  useEffect(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now.getTime() - start.getTime();
+    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+    setTipIndex(dayOfYear % TIPS.length);
+  }, []);
+
+  return (
+    <div className="card !p-3 mt-1 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-100 dark:border-blue-900/30">
+      <h3 className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1">💡 Mẹo sức khỏe hôm nay</h3>
+      <p className="text-sm text-blue-900/80 dark:text-blue-200/80 leading-snug">{TIPS[tipIndex]}</p>
+    </div>
+  );
+}
+
+function NextDoseCountdown({ nextUp }: { nextUp: Item["next"] }) {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    if (!nextUp) return;
+    const tick = () => {
+      const now = new Date();
+      const [h, m] = nextUp.time.split(":").map(Number);
+      const target = new Date();
+      target.setHours(h, m, 0, 0);
+      
+      let diffMs = target.getTime() - now.getTime();
+      if (diffMs < 0) {
+        setTimeLeft("Đã quá giờ uống");
+        return;
+      }
+      
+      const hrs = Math.floor(diffMs / (1000 * 60 * 60));
+      const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+      
+      if (hrs > 0) setTimeLeft(`Còn ${hrs}g ${mins}p`);
+      else if (mins > 0) setTimeLeft(`Còn ${mins}p ${secs}s`);
+      else setTimeLeft(`Còn ${secs}s`);
+    };
+    
+    tick();
+    const intv = setInterval(tick, 1000);
+    return () => clearInterval(intv);
+  }, [nextUp]);
+
+  if (!nextUp) {
+    return (
+      <div className="card !p-3 mt-1 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/30 text-center">
+        <span className="text-2xl mb-1 block">🎉</span>
+        <p className="text-sm font-semibold text-green-700 dark:text-green-400">Tuyệt vời, bạn đã hoàn thành đủ liều hôm nay!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card !p-3 mt-1 flex items-center justify-between">
+      <div>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Liều tiếp theo</p>
+        <p className="text-sm font-bold mt-0.5 text-slate-900 dark:text-slate-100">
+          {nextUp.which === "morning" ? "Buổi sáng" : "Buổi tối"} lúc {nextUp.time}
+        </p>
+      </div>
+      <div className="text-right">
+        <div className="inline-block px-2.5 py-1.5 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 font-mono text-sm font-bold shadow-inner">
+          {timeLeft || "Đang tính..."}
+        </div>
+      </div>
+    </div>
+  );
 }
