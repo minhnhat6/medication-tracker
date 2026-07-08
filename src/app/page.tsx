@@ -94,13 +94,13 @@ export default function DashboardPage() {
   const nextUp = data.items.map((it) => it.next).filter(Boolean)[0] as Item["next"];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 sm:space-y-4">
       {/* Header */}
       <div>
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
           {dayName(data.date)}
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
           {new Date(data.date + "T00:00:00").toLocaleDateString("vi-VN", {
             day: "numeric",
             month: "long",
@@ -134,8 +134,8 @@ export default function DashboardPage() {
       )}
 
       {/* Progress */}
-      <div className="card">
-        <div className="mb-3 flex items-baseline justify-between">
+      <div className="card !p-3">
+        <div className="mb-2 flex items-baseline justify-between">
           <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400">
             Tiến độ hôm nay
           </h2>
@@ -150,11 +150,11 @@ export default function DashboardPage() {
           />
         </div>
         {nextUp ? (
-          <p className="mt-2.5 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400">
             Tiếp theo: <span className="font-medium text-slate-900 dark:text-slate-100">{nextUp.which === "morning" ? "Sáng" : "Tối"}</span> lúc {nextUp.time}
           </p>
         ) : (
-          <p className="mt-2.5 text-sm font-medium text-green-700 dark:text-green-400">
+          <p className="mt-1.5 text-xs font-medium text-green-700 dark:text-green-400">
             Đã uống đủ thuốc hôm nay
           </p>
         )}
@@ -162,8 +162,8 @@ export default function DashboardPage() {
 
       {/* Medicine cards */}
       {data.items.map((it) => (
-        <div key={it.medicine.id} className="card">
-          <div className="mb-3.5 flex items-start justify-between gap-3">
+        <div key={it.medicine.id} className="card !p-3">
+          <div className="mb-2 flex items-start justify-between gap-2">
             <div className="min-w-0">
               <h3 className="font-semibold text-slate-900 dark:text-slate-100">
                 {it.medicine.name}
@@ -174,7 +174,7 @@ export default function DashboardPage() {
               {STATUS_LABEL[it.log.status]}
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <DoseTile
               label="Sáng"
               time={it.medicine.morningTime}
@@ -197,17 +197,17 @@ export default function DashboardPage() {
 
       {/* Quick Stats & Mini Calendar */}
       {stats && days && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="card col-span-2 sm:col-span-1 flex flex-col justify-center text-center p-3">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Chuỗi duy trì</p>
-            <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{stats.currentStreak} ngày</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="card col-span-2 sm:col-span-1 flex flex-col justify-center text-center !p-2.5">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Chuỗi duy trì</p>
+            <p className="mt-0.5 text-xl font-bold text-green-600 dark:text-green-400">{stats.currentStreak} ngày</p>
           </div>
-          <div className="card col-span-2 sm:col-span-1 flex flex-col justify-center text-center p-3">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Hoàn thành tuần</p>
-            <p className="mt-1 text-2xl font-bold text-brand-600 dark:text-brand-400">{stats.completionRate}%</p>
+          <div className="card col-span-2 sm:col-span-1 flex flex-col justify-center text-center !p-2.5">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Hoàn thành tuần</p>
+            <p className="mt-0.5 text-xl font-bold text-brand-600 dark:text-brand-400">{stats.completionRate}%</p>
           </div>
-          <div className="card col-span-2 sm:col-span-2 p-3">
-            <p className="mb-2 text-xs text-center text-slate-500 dark:text-slate-400">7 ngày gần nhất</p>
+          <div className="card col-span-2 sm:col-span-2 !p-2.5">
+            <p className="mb-1.5 text-[11px] text-center text-slate-500 dark:text-slate-400">7 ngày gần nhất</p>
             <div className="flex justify-between gap-1">
               {days.slice(-7).map((d) => {
                 const dayNum = Number(d.date.slice(-2));
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                   <div
                     key={d.date}
                     title={STATUS_LABEL[d.status]}
-                    className={`flex h-9 w-9 flex-col items-center justify-center rounded-lg leading-none ${style} ${
+                    className={`flex h-8 w-8 flex-col items-center justify-center rounded-md leading-none ${style} ${
                       isToday ? "ring-2 ring-brand-600 ring-offset-1 dark:ring-offset-slate-900" : ""
                     }`}
                   >
@@ -232,11 +232,11 @@ export default function DashboardPage() {
       )}
 
       {/* Actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/episodes/new" className="btn-danger justify-center">
+      <div className="grid grid-cols-2 gap-2">
+        <Link href="/episodes/new" className="btn-danger justify-center !py-1.5 text-sm">
           Ghi phát bệnh
         </Link>
-        <Link href="/export" className="btn-ghost justify-center">
+        <Link href="/export" className="btn-ghost justify-center !py-1.5 text-sm">
           Xuất báo cáo
         </Link>
       </div>
@@ -263,17 +263,17 @@ function DoseTile({
     <button
       onClick={onToggle}
       disabled={busy}
-      className={`flex min-h-[110px] flex-col items-center justify-center gap-1.5 rounded-xl border-2 p-4 transition-all active:scale-[0.98] ${
+      className={`flex min-h-[85px] flex-col items-center justify-center gap-0.5 rounded-xl border-2 p-2 transition-all active:scale-[0.98] ${
         taken
           ? "border-green-600 bg-green-50 text-green-900 dark:border-green-700 dark:bg-green-950/30 dark:text-green-100"
           : "border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:border-slate-600"
       } ${busy ? "pointer-events-none opacity-60" : ""}`}
     >
-      <span className="text-2xl">{taken ? "✓" : "○"}</span>
-      <p className="text-base font-semibold">{label}</p>
-      <p className="text-sm opacity-75">{time}</p>
+      <span className="text-xl leading-none">{taken ? "✓" : "○"}</span>
+      <p className="text-sm font-semibold leading-tight">{label}</p>
+      <p className="text-xs opacity-75 leading-tight">{time}</p>
       {taken && at && (
-        <p className="mt-0.5 text-xs opacity-60">
+        <p className="mt-0.5 text-[10px] opacity-60 leading-tight">
           {new Date(at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
         </p>
       )}
