@@ -160,6 +160,41 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Medicine cards */}
+      {data.items.map((it) => (
+        <div key={it.medicine.id} className="card">
+          <div className="mb-3.5 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                {it.medicine.name}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">{it.medicine.dosage}</p>
+            </div>
+            <span className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
+              {STATUS_LABEL[it.log.status]}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <DoseTile
+              label="Sáng"
+              time={it.medicine.morningTime}
+              taken={it.log.morningTaken}
+              at={it.log.morningTakenAt}
+              busy={busy === it.medicine.id + "morning"}
+              onToggle={() => mark(it.medicine.id, "morning", !it.log.morningTaken)}
+            />
+            <DoseTile
+              label="Tối"
+              time={it.medicine.eveningTime}
+              taken={it.log.eveningTaken}
+              at={it.log.eveningTakenAt}
+              busy={busy === it.medicine.id + "evening"}
+              onToggle={() => mark(it.medicine.id, "evening", !it.log.eveningTaken)}
+            />
+          </div>
+        </div>
+      ))}
+
       {/* Quick Stats & Mini Calendar */}
       {stats && days && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -195,41 +230,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Medicine cards */}
-      {data.items.map((it) => (
-        <div key={it.medicine.id} className="card">
-          <div className="mb-3.5 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100">
-                {it.medicine.name}
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">{it.medicine.dosage}</p>
-            </div>
-            <span className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
-              {STATUS_LABEL[it.log.status]}
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <DoseTile
-              label="Sáng"
-              time={it.medicine.morningTime}
-              taken={it.log.morningTaken}
-              at={it.log.morningTakenAt}
-              busy={busy === it.medicine.id + "morning"}
-              onToggle={() => mark(it.medicine.id, "morning", !it.log.morningTaken)}
-            />
-            <DoseTile
-              label="Tối"
-              time={it.medicine.eveningTime}
-              taken={it.log.eveningTaken}
-              at={it.log.eveningTakenAt}
-              busy={busy === it.medicine.id + "evening"}
-              onToggle={() => mark(it.medicine.id, "evening", !it.log.eveningTaken)}
-            />
-          </div>
-        </div>
-      ))}
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-3">
