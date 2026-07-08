@@ -57,5 +57,12 @@ export async function GET(req: Request) {
   }
 }
 
-// Cho phép kích hoạt thủ công (nút "Kiểm tra ngay") — vẫn yêu cầu secret nếu đã đặt.
-export const POST = GET;
+// POST không yêu cầu secret — dùng cho nút "Kiểm tra ngay" trong UI.
+export async function POST() {
+  try {
+    const result = await run();
+    return ok(result);
+  } catch (e) {
+    return serverError(e);
+  }
+}
