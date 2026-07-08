@@ -1,0 +1,151 @@
+// Medication Tracker — Prisma schema (PostgreSQL / Supabase)
+// Thiết kế cho phép mở rộng nhiều thuốc (PRD mục 3 & 14)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// Trạng thái uống thuốc theo ngày
+enum MedStatus {
+  pending
+  completed
+  missing_morning
+  missing_evening
+  missing_both
+}
+
+/// Mức độ phát bệnh
+enum Severity {
+  mild
+  moderate
+  severe
+}
+
+model Medicine {
+  id          String   @id @default(cuid())
+  name        String
+  dosage      String
+  morningTime String   @map("morning_time") // "HH:mm"
+  eveningTime String   @map("evening_time") // "HH:mm"
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  logs MedicationLog[]
+
+  @@map("medicines")
+}
+
+model MedicationLog {
+  id            String    @id @default(cuid())
+  medicineId    String    @map("medicine_id")
+  date          DateTime  @db.Date // ngày (theo múi giờ app)
+  morningTaken  Boolean   @default(false) @map("morning_taken")
+  morningTakenAt DateTime? @map("morning_taken_at")
+  eveningTaken  Boolean   @default(false) @map("evening_taken")
+  eveningTakenAt DateTime? @map("evening_taken_at")
+  status        MedStatus @default(pending)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  medicine Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+
+  @@unique([medicineId, date])
+  @@index([date])
+  @@map("medication_logs")
+}
+
+model Episode {
+  id          String   @id @default(cuid())
+  episodeTime DateTime @map("episode_time")
+  duration    Int?     @map("duration") // phút
+  severity    Severity @default(moderate)
+  location    String?
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([episodeTime])
+  @@map("episodes")
+}
+
+model MedicationChange {
+  id           String   @id @default(cuid())
+  medicineName String   @map("medicine_name")
+  dosage       String
+  changeDate   DateTime @db.Date @map("change_date")
+  reason       String?
+  notes        String? // ghi chú bác sĩ
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([changeDate])
+  @@map("medication_changes")
+}
+
+model MedicalDocument {
+  id        String   @id @default(cuid())
+  title     String
+  category  String // đơn thuốc, PDF, ảnh, EEG, MRI, CT, phiếu khám
+  fileUrl   String   @map("file_url")
+  filePath  String?  @map("file_path") // path trong Supabase Storage (để xóa)
+  visitDate DateTime? @db.Date @map("visit_date")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([visitDate])
+  @@map("medical_documents")
+}
+
+/// Đăng ký Web Push
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("push_subscriptions")
+}
+
+/// Cấu hình thông báo (Email, Telegram, Zalo)
+model NotificationSettings {
+  id        String   @id @default(cuid())
+  // Email
+  emailEnabled Boolean @default(false) @map("email_enabled")
+  emailTo      String? @map("email_to")
+  // Telegram
+  telegramEnabled Boolean @default(false) @map("telegram_enabled")
+  telegramChatId  String? @map("telegram_chat_id")
+  // Zalo (future: cần Zalo OA API hoặc ZNS)
+  zaloEnabled Boolean @default(false) @map("zalo_enabled")
+  zaloPhone   String? @map("zalo_phone")
+  zaloOaId    String? @map("zalo_oa_id")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_settings")
+}
+
+/// Log nhắc nhở (để tránh spam nhiều lần trong ngày)
+model ReminderLog {
+  id              String   @id @default(cuid())
+  medicineId      String   @map("medicine_id")
+  date            DateTime @db.Date
+  morningNotified Boolean  @default(false) @map("morning_notified")
+  eveningNotified Boolean  @default(false) @map("evening_notified")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([medicineId, date], name: "medicineId_date")
+  @@index([date])
+  @@map("reminder_logs")
+}

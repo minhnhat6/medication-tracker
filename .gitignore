@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+build
+.env
+.env*.local
+.DS_Store
+*.log
+.vercel
+prisma/dev.db
+next-env.d.ts.bak
+.pgdata
+start-local.sh
+stop-local.sh
