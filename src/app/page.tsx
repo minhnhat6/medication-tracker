@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/lib/client";
 import { Spinner, ErrorBox } from "@/components/ui";
@@ -59,6 +59,8 @@ export default function DashboardPage() {
   const [extraDoses, setExtraDoses] = useState<ExtraDose[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  // key = "medicineId:which", value = setTimeout ID
+  const notifyTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({}); 
 
   const load = useCallback(async () => {
     try {
@@ -83,12 +85,32 @@ export default function DashboardPage() {
 
   async function mark(medicineId: string, which: "morning" | "evening", taken: boolean) {
     setBusy(medicineId + which);
+    const timerKey = `${medicineId}:${which}`;
     try {
       await api(`/api/logs/${which}`, {
         method: "POST",
         body: JSON.stringify({ medicineId, taken }),
       });
       await load();
+
+      if (taken) {
+        // Hủy timer cũ nếu có (trường hợp bấm nhiều lần)
+        clearTimeout(notifyTimers.current[timerKey]);
+        // Đặt timer mới 5 phút
+        notifyTimers.current[timerKey] = setTimeout(async () => {
+          delete notifyTimers.current[timerKey];
+          const today = new Date().toISOString().slice(0, 10);
+          await fetch("/api/logs/notify-taken", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ medicineId, which, date: today }),
+          }).catch(() => {});
+        }, 5 * 60 * 1000); // 5 phút
+      } else {
+        // Hoàn trả → hủy timer, không gửi thông báo
+        clearTimeout(notifyTimers.current[timerKey]);
+        delete notifyTimers.current[timerKey];
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
