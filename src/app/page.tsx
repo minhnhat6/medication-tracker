@@ -28,6 +28,16 @@ interface Today {
   hasEpisodeToday: boolean;
 }
 
+interface Stats {
+  completionRate: number;
+  currentStreak: number;
+}
+interface Day {
+  date: string;
+  status: MedStatus;
+  hasEpisode?: boolean;
+}
+
 const dayName = (iso: string) => {
   const names = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
   const d = new Date(iso + "T00:00:00");
@@ -36,12 +46,20 @@ const dayName = (iso: string) => {
 
 export default function DashboardPage() {
   const [data, setData] = useState<Today | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [days, setDays] = useState<Day[] | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setData(await api<Today>("/api/dashboard/today"));
+      const [todayData, statsData] = await Promise.all([
+        api<Today>("/api/dashboard/today"),
+        api<{ stats: Stats; days: Day[] }>("/api/statistics?range=7d"),
+      ]);
+      setData(todayData);
+      setStats(statsData.stats);
+      setDays(statsData.days);
       setError("");
     } catch (e) {
       setError((e as Error).message);
@@ -142,6 +160,42 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Quick Stats & Mini Calendar */}
+      {stats && days && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="card col-span-2 sm:col-span-1 flex flex-col justify-center text-center p-3">
+            <p className="text-xs text-slate-500 dark:text-slate-400">Chuỗi duy trì</p>
+            <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{stats.currentStreak} ngày</p>
+          </div>
+          <div className="card col-span-2 sm:col-span-1 flex flex-col justify-center text-center p-3">
+            <p className="text-xs text-slate-500 dark:text-slate-400">Hoàn thành tuần</p>
+            <p className="mt-1 text-2xl font-bold text-brand-600 dark:text-brand-400">{stats.completionRate}%</p>
+          </div>
+          <div className="card col-span-2 sm:col-span-2 p-3">
+            <p className="mb-2 text-xs text-center text-slate-500 dark:text-slate-400">7 ngày gần nhất</p>
+            <div className="flex justify-between gap-1">
+              {days.slice(-7).map((d) => {
+                const dayNum = Number(d.date.slice(-2));
+                const isToday = d.date === data.date;
+                const style = cellStyle(d.status);
+                return (
+                  <div
+                    key={d.date}
+                    title={STATUS_LABEL[d.status]}
+                    className={`flex h-9 w-9 flex-col items-center justify-center rounded-lg leading-none ${style} ${
+                      isToday ? "ring-2 ring-brand-600 ring-offset-1 dark:ring-offset-slate-900" : ""
+                    }`}
+                  >
+                    <span className="text-[10px] font-bold">{dayNum}</span>
+                    <span className="text-[10px] font-bold opacity-90">{statusMark(d.status)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Medicine cards */}
       {data.items.map((it) => (
         <div key={it.medicine.id} className="card">
@@ -225,4 +279,25 @@ function DoseTile({
       )}
     </button>
   );
+}
+
+function cellStyle(status: MedStatus | null): string {
+  switch (status) {
+    case "completed":
+      return "bg-emerald-500 text-white shadow-sm shadow-emerald-500/30";
+    case "missing_morning":
+    case "missing_evening":
+      return "bg-amber-400 text-amber-950 shadow-sm shadow-amber-400/30";
+    case "missing_both":
+      return "bg-rose-600 text-white shadow-sm shadow-rose-600/30";
+    default:
+      return "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500";
+  }
+}
+
+function statusMark(status: MedStatus | null): string {
+  if (!status) return "";
+  if (status === "completed") return "✓";
+  if (status === "missing_both") return "✕";
+  return "½";
 }
