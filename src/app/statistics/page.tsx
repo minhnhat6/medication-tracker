@@ -1,19 +1,16 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Cell,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { api } from "@/lib/client";
 import { PageTitle, Spinner, ErrorBox } from "@/components/ui";
 import { STATUS_COLOR } from "@/lib/status";
 import type { MedStatus } from "@prisma/client";
+
+// Dynamic import — recharts (~500KB) chỉ load khi vào trang /statistics
+const StatsChart = dynamic(() => import("./StatsChart"), {
+  ssr: false,
+  loading: () => <div className="h-[220px] animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />,
+});
 
 interface Stats {
   completionRate: number;
@@ -105,23 +102,7 @@ export default function StatisticsPage() {
             <h3 className="mb-3 text-sm font-semibold text-slate-500">
               Tuân thủ theo ngày (0 = thiếu cả 2 · 1 = thiếu 1 · 2 = đủ)
             </h3>
-            {chartData.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-400">Chưa có dữ liệu.</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={chartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-                  <YAxis domain={[0, 2]} ticks={[0, 1, 2]} tick={{ fontSize: 10 }} />
-                  <Tooltip />
-                  <Bar dataKey="value" radius={[3, 3, 0, 0]}>
-                    {chartData.map((d, i) => (
-                      <Cell key={i} fill={d.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+            <StatsChart data={chartData} />
           </div>
         </>
       )}
@@ -137,3 +118,4 @@ function StatCard({ label, value, accent }: { label: string; value: string; acce
     </div>
   );
 }
+
