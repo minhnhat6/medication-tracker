@@ -29,8 +29,8 @@ export async function POST(req: Request) {
             timeZone: "Asia/Ho_Chi_Minh",
           })
         : "?";
-      // fire-and-forget, không chẹn response
-      sendTelegram(
+      // fire-and-forget bị kill ngay sau return trong serverless — phải await
+      await sendTelegram(
         `✅ <b>Đã uống Tối</b>\n💊 ${med?.name ?? ""}\n⏰ Lúc ${timeStr}`
       ).catch(() => {});
     }
