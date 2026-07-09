@@ -204,28 +204,6 @@ export default function DashboardPage() {
 
       ))}
 
-      {/* Cảnh báo sắp hết thuốc */}
-      {data.stockAlerts.length > 0 && (
-        <div className="space-y-2">
-          {data.stockAlerts.map((alert) => (
-            <div
-              key={alert.medicineName}
-              className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 dark:border-red-800/50 dark:bg-red-900/20"
-            >
-              <span className="text-lg leading-none">⚠️</span>
-              <div>
-                <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-                  Sắp hết thuốc: {alert.medicineName}
-                </p>
-                <p className="text-xs text-red-600 dark:text-red-500">
-                  Còn {alert.stockDoses} liều — đủ {alert.remainingDays} ngày. Hãy mua thêm!
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Thuốc uống thêm */}
       <ExtraDoseCard doses={extraDoses} onRefresh={load} />
 
@@ -288,45 +266,33 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Cảnh báo sắp hết thuốc */}
+      {data.stockAlerts.length > 0 && (
+        <div className="space-y-2">
+          {data.stockAlerts.map((alert) => (
+            <div
+              key={alert.medicineName}
+              className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 dark:border-red-800/50 dark:bg-red-900/20"
+            >
+              <span className="text-lg leading-none">⚠️</span>
+              <div>
+                <p className="text-sm font-semibold text-red-700 dark:text-red-400">
+                  Sắp hết thuốc: {alert.medicineName}
+                </p>
+                <p className="text-xs text-red-600 dark:text-red-500">
+                  Còn {alert.stockDoses} liều — đủ {alert.remainingDays} ngày. Hãy mua thêm!
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Countdown & Tips chuyển lên đây */}
       <NextDoseCountdown nextUp={nextUp} />
       <DailyTip />
 
-      {/* Quick Stats & Mini Calendar */}
-      {stats && days && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div className="card col-span-2 sm:col-span-1 flex flex-col justify-center text-center !p-2.5">
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">Chuỗi duy trì</p>
-            <p className="mt-0.5 text-xl font-bold text-green-600 dark:text-green-400">{stats.currentStreak} ngày</p>
-          </div>
-          <div className="card col-span-2 sm:col-span-1 flex flex-col justify-center text-center !p-2.5">
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">Hoàn thành tuần</p>
-            <p className="mt-0.5 text-xl font-bold text-brand-600 dark:text-brand-400">{stats.completionRate}%</p>
-          </div>
-          <div className="card col-span-2 sm:col-span-2 !p-2.5">
-            <p className="mb-1.5 text-[11px] text-center text-slate-500 dark:text-slate-400">7 ngày gần nhất</p>
-            <div className="flex justify-between gap-1">
-              {days.slice(-7).map((d) => {
-                const dayNum = Number(d.date.slice(-2));
-                const isToday = d.date === data.date;
-                const style = cellStyle(d.status);
-                return (
-                  <div
-                    key={d.date}
-                    title={STATUS_LABEL[d.status]}
-                    className={`flex h-8 w-8 flex-col items-center justify-center rounded-md leading-none ${style} ${
-                      isToday ? "ring-2 ring-brand-600 ring-offset-1 dark:ring-offset-slate-900" : ""
-                    }`}
-                  >
-                    <span className="text-[10px] font-bold">{dayNum}</span>
-                    <span className="text-[10px] font-bold opacity-90">{statusMark(d.status)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-2">
