@@ -200,33 +200,60 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Thanh tồn kho — luôn hiển thị nếu đang theo dõi */}
-          {it.stockDoses !== null && (
-            <div className={`mt-2.5 rounded-lg px-2.5 py-2 ${
-              it.lowStock
-                ? "bg-red-50 dark:bg-red-900/20"
-                : "bg-slate-50 dark:bg-slate-800/60"
-            }`}>
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className={`font-medium ${it.lowStock ? "text-red-600 dark:text-red-400" : "text-slate-600 dark:text-slate-400"}`}>
-                  {it.lowStock ? "⚠️ Sắp hết thuốc!" : "📦 Tồn kho"}
-                </span>
-                <span className={`font-semibold ${it.lowStock ? "text-red-700 dark:text-red-300" : "text-slate-800 dark:text-slate-200"}`}>
-                  {it.stockDoses} liều &mdash; còn {it.remainingDays} ngày
-                </span>
+          {/* Tồn kho — lưới viên thuốc, mỗi ô = 1 ngày */}
+          {it.stockDoses !== null && (() => {
+            const days = it.remainingDays!;
+            const totalCells = 30; // hiển thị tối đa 30 ô (30 ngày)
+            const filledCells = Math.min(days, totalCells);
+            const color = it.lowStock
+              ? "bg-red-500 dark:bg-red-400"
+              : days <= 7
+              ? "bg-amber-400 dark:bg-amber-400"
+              : "bg-emerald-500 dark:bg-emerald-400";
+            const label = it.lowStock ? "⚠️ Sắp hết!" : "💊 Còn";
+
+            return (
+              <div className="mt-2.5 border-t border-slate-100 dark:border-slate-700/50 pt-2.5">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className={`text-[11px] font-semibold uppercase tracking-wide ${
+                    it.lowStock ? "text-red-500 dark:text-red-400" : "text-slate-400"
+                  }`}>
+                    {label}
+                  </span>
+                  <span className={`text-xs font-bold tabular-nums ${
+                    it.lowStock
+                      ? "text-red-600 dark:text-red-400"
+                      : days <= 7
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-emerald-600 dark:text-emerald-400"
+                  }`}>
+                    {days} ngày &middot; {it.stockDoses} liều
+                  </span>
+                </div>
+                {/* Lưới ô ngày — kiểu vỉ thuốc */}
+                <div className="flex flex-wrap gap-[3px]">
+                  {Array.from({ length: totalCells }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`h-3 w-3 rounded-sm transition-all duration-300 ${
+                        i < filledCells
+                          ? color
+                          : "bg-slate-100 dark:bg-slate-700"
+                      }`}
+                      style={{ animationDelay: `${i * 20}ms` }}
+                    />
+                  ))}
+                  {days > totalCells && (
+                    <span className="text-[10px] text-slate-400 self-center ml-1">
+                      +{days - totalCells}
+                    </span>
+                  )}
+                </div>
               </div>
-              {/* Thanh progress */}
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    it.lowStock ? "bg-red-500" : it.remainingDays! <= 7 ? "bg-amber-500" : "bg-green-500"
-                  }`}
-                  style={{ width: `${Math.min(100, Math.max(4, (it.remainingDays! / 30) * 100))}%` }}
-                />
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
+
 
       ))}
 
