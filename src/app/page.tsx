@@ -199,59 +199,6 @@ export default function DashboardPage() {
               onToggle={() => mark(it.medicine.id, "evening", !it.log.eveningTaken)}
             />
           </div>
-
-          {/* Tồn kho — lưới viên thuốc, mỗi ô = 1 ngày */}
-          {it.stockDoses !== null && (() => {
-            const days = it.remainingDays!;
-            const totalCells = 30; // hiển thị tối đa 30 ô (30 ngày)
-            const filledCells = Math.min(days, totalCells);
-            const color = it.lowStock
-              ? "bg-red-500 dark:bg-red-400"
-              : days <= 7
-              ? "bg-amber-400 dark:bg-amber-400"
-              : "bg-emerald-500 dark:bg-emerald-400";
-            const label = it.lowStock ? "⚠️ Sắp hết!" : "💊Kho Thuốc Còn";
-
-            return (
-              <div className="mt-2.5 border-t border-slate-100 dark:border-slate-700/50 pt-2.5">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className={`text-[11px] font-semibold uppercase tracking-wide ${
-                    it.lowStock ? "text-red-500 dark:text-red-400" : "text-slate-400"
-                  }`}>
-                    {label}
-                  </span>
-                  <span className={`text-xs font-bold tabular-nums ${
-                    it.lowStock
-                      ? "text-red-600 dark:text-red-400"
-                      : days <= 7
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-emerald-600 dark:text-emerald-400"
-                  }`}>
-                    {days} ngày &middot; {it.stockDoses} liều
-                  </span>
-                </div>
-                {/* Lưới ô ngày — kiểu vỉ thuốc */}
-                <div className="flex flex-wrap gap-[3px]">
-                  {Array.from({ length: totalCells }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`h-3 w-3 rounded-sm transition-all duration-300 ${
-                        i < filledCells
-                          ? color
-                          : "bg-slate-100 dark:bg-slate-700"
-                      }`}
-                      style={{ animationDelay: `${i * 20}ms` }}
-                    />
-                  ))}
-                  {days > totalCells && (
-                    <span className="text-[10px] text-slate-400 self-center ml-1">
-                      +{days - totalCells}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
         </div>
 
 
@@ -281,6 +228,69 @@ export default function DashboardPage() {
 
       {/* Thuốc uống thêm */}
       <ExtraDoseCard doses={extraDoses} onRefresh={load} />
+
+      {/* Tồn kho gộp */}
+      {data.items.some(it => it.stockDoses !== null) && (
+        <div className="card !p-3">
+          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+            📦 Tồn kho hiện tại
+          </h3>
+          <div className="space-y-4">
+            {data.items.filter(it => it.stockDoses !== null).map(it => {
+              const days = it.remainingDays!;
+              const totalCells = 30;
+              const filledCells = Math.min(days, totalCells);
+              const color = it.lowStock
+                ? "bg-red-500 dark:bg-red-400"
+                : days <= 7
+                ? "bg-amber-400 dark:bg-amber-400"
+                : "bg-emerald-500 dark:bg-emerald-400";
+              const label = it.lowStock ? "⚠️ Sắp hết!" : "💊 Còn";
+
+              return (
+                <div key={it.medicine.id}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className={`text-[11px] font-semibold uppercase tracking-wide ${
+                      it.lowStock ? "text-red-500 dark:text-red-400" : "text-slate-500 dark:text-slate-300"
+                    }`}>
+                      {it.medicine.name}
+                    </span>
+                    <span className={`text-xs font-bold tabular-nums ${
+                      it.lowStock
+                        ? "text-red-600 dark:text-red-400"
+                        : days <= 7
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-emerald-600 dark:text-emerald-400"
+                    }`}>
+                      {days} ngày &middot; {it.stockDoses} liều
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-[3px]">
+                    {Array.from({ length: totalCells }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`h-3 w-3 rounded-sm transition-all duration-300 ${
+                          i < filledCells ? color : "bg-slate-100 dark:bg-slate-700"
+                        }`}
+                        style={{ animationDelay: `${i * 20}ms` }}
+                      />
+                    ))}
+                    {days > totalCells && (
+                      <span className="text-[10px] text-slate-400 self-center ml-1">
+                        +{days - totalCells}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Countdown & Tips chuyển lên đây */}
+      <NextDoseCountdown nextUp={nextUp} />
+      <DailyTip />
 
       {/* Quick Stats & Mini Calendar */}
       {stats && days && (
@@ -317,10 +327,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Countdown & Tips */}
-      <NextDoseCountdown nextUp={nextUp} />
-      <DailyTip />
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-2">
