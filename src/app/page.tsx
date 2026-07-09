@@ -17,6 +17,9 @@ interface Item {
   };
   next: { which: "morning" | "evening"; time: string } | null;
   due: { which: "morning" | "evening"; time: string } | null;
+  stockDoses: number | null;
+  remainingDays: number | null;
+  lowStock: boolean;
 }
 
 interface Today {
@@ -26,6 +29,7 @@ interface Today {
   due: { medicine: string; which: string; time: string }[];
   episodesToday: { id: string; episodeTime: string; severity: string }[];
   hasEpisodeToday: boolean;
+  stockAlerts: { medicineName: string; stockDoses: number; remainingDays: number }[];
 }
 
 interface Stats {
@@ -173,9 +177,23 @@ export default function DashboardPage() {
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">{it.medicine.dosage}</p>
             </div>
-            <span className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
-              {STATUS_LABEL[it.log.status]}
-            </span>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                {STATUS_LABEL[it.log.status]}
+              </span>
+              {/* Badge tồn kho */}
+              {it.stockDoses !== null && (
+                <span
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                    it.lowStock
+                      ? "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400"
+                      : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                  }`}
+                >
+                  {it.lowStock ? `⚠️ ${it.remainingDays}ngày` : `📦 ${it.remainingDays}ngày`}
+                </span>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <DoseTile
@@ -197,6 +215,28 @@ export default function DashboardPage() {
           </div>
         </div>
       ))}
+
+      {/* Cảnh báo sắp hết thuốc */}
+      {data.stockAlerts.length > 0 && (
+        <div className="space-y-2">
+          {data.stockAlerts.map((alert) => (
+            <div
+              key={alert.medicineName}
+              className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 dark:border-red-800/50 dark:bg-red-900/20"
+            >
+              <span className="text-lg leading-none">⚠️</span>
+              <div>
+                <p className="text-sm font-semibold text-red-700 dark:text-red-400">
+                  Sắp hết thuốc: {alert.medicineName}
+                </p>
+                <p className="text-xs text-red-600 dark:text-red-500">
+                  Còn {alert.stockDoses} liều — đủ {alert.remainingDays} ngày. Hãy mua thêm!
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Thuốc uống thêm */}
       <ExtraDoseCard doses={extraDoses} onRefresh={load} />

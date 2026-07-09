@@ -11,6 +11,7 @@ interface Medicine {
   morningTime: string;
   eveningTime: string;
   active: boolean;
+  stockDoses: number | null;
 }
 
 interface NotificationSettings {
@@ -49,6 +50,9 @@ export default function SettingsPage() {
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [savingNotif, setSavingNotif] = useState(false);
+  // Nhập kho: key = medicineId, value = số liều đang nhập
+  const [restockInput, setRestockInput] = useState<Record<string, string>>({});
+  const [restocking, setRestocking] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -167,6 +171,25 @@ export default function SettingsPage() {
     }
   }
 
+  async function restock(medId: string) {
+    const qty = parseInt(restockInput[medId] || "0", 10);
+    if (!qty || qty <= 0) return;
+    setRestocking(medId);
+    try {
+      await api(`/api/medicines/${medId}/restock`, {
+        method: "POST",
+        body: JSON.stringify({ quantity: qty }),
+      });
+      setRestockInput((prev) => ({ ...prev, [medId]: "" }));
+      setMsg(`✅ Đã nhập ${qty} liều vào kho!`);
+      await load();
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setRestocking(null);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <PageTitle title="Cài đặt" />
@@ -218,6 +241,39 @@ export default function SettingsPage() {
                   </button>
                   <button className="btn-primary" disabled={saving === m.id} onClick={() => save(m)}>
                     {saving === m.id ? "Đang lưu…" : "Lưu"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Nhập kho thuốc */}
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    📦 Tồn kho
+                  </span>
+                  <span className="text-xs font-medium">
+                    {m.stockDoses !== null
+                      ? `${m.stockDoses} liều — đủ ${Math.floor(m.stockDoses / 2)} ngày`
+                      : "— Chưa theo dõi"}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Số liều (ví dụ: 60)"
+                    className="input flex-1"
+                    value={restockInput[m.id] || ""}
+                    onChange={(e) =>
+                      setRestockInput((prev) => ({ ...prev, [m.id]: e.target.value }))
+                    }
+                  />
+                  <button
+                    className="btn-primary shrink-0"
+                    disabled={restocking === m.id || !restockInput[m.id]}
+                    onClick={() => restock(m.id)}
+                  >
+                    {restocking === m.id ? "Đang lưu…" : "+ Nhập kho"}
                   </button>
                 </div>
               </div>

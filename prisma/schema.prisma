@@ -34,6 +34,7 @@ model Medicine {
   morningTime String   @map("morning_time") // "HH:mm"
   eveningTime String   @map("evening_time") // "HH:mm"
   active      Boolean  @default(true)
+  stockDoses  Int?     @map("stock_doses")  // null = không theo dõi; số = số liều còn lại
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

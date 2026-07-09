@@ -96,14 +96,20 @@ export async function GET() {
       updatedLogs.forEach((l) => logByMedId.set(l.medicineId, l));
     }
 
-    // 5. Build items
+    // 5. Build items — include stock info
+    const STOCK_WARN_DOSES = 6; // ≤ 3 ngày
     const items = meds.map((med) => {
       const log = logByMedId.get(med.id)!;
+      const stockDoses = med.stockDoses ?? null;
+      const remainingDays = stockDoses !== null ? Math.floor(stockDoses / 2) : null;
       return {
         medicine: med,
         log,
         next: nextDose(med, log),
         due: isDoseDue(med, log),
+        stockDoses,
+        remainingDays,
+        lowStock: stockDoses !== null && stockDoses <= STOCK_WARN_DOSES,
       };
     });
 
@@ -135,6 +141,13 @@ export async function GET() {
       due: dueList,
       episodesToday,
       hasEpisodeToday: episodesToday.length > 0,
+      stockAlerts: items
+        .filter((it) => it.lowStock)
+        .map((it) => ({
+          medicineName: it.medicine.name,
+          stockDoses: it.stockDoses!,
+          remainingDays: it.remainingDays!,
+        })),
     });
   } catch (e) {
     return serverError(e);
