@@ -1,8 +1,6 @@
 "use client";
 import Link from "next/link";
 import { PageTitle } from "@/components/ui";
-import { toggleTheme } from "@/components/ThemeInit";
-import { useState } from "react";
 
 const links = [
   { href: "/history", icon: "📖", title: "Lịch sử uống thuốc", desc: "Nhật ký từng ngày" },
@@ -14,7 +12,6 @@ const links = [
 ];
 
 export default function MorePage() {
-  const [dark, setDark] = useState(false);
   return (
     <div className="space-y-4">
       <PageTitle title="Thêm" />
@@ -29,16 +26,6 @@ export default function MorePage() {
             <span className="text-slate-300">›</span>
           </Link>
         ))}
-        <button
-          onClick={() => setDark(toggleTheme())}
-          className="card flex items-center gap-4 text-left"
-        >
-          <span className="text-2xl">🌓</span>
-          <div className="flex-1">
-            <p className="font-semibold">Đổi giao diện sáng/tối</p>
-            <p className="text-xs text-slate-500">Chạm để chuyển chế độ</p>
-          </div>
-        </button>
       </div>
     </div>
   );
