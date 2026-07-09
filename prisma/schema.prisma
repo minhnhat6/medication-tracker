@@ -38,9 +38,25 @@ model Medicine {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  logs MedicationLog[]
+  logs         MedicationLog[]
+  stockHistory StockHistory[]
 
   @@map("medicines")
+}
+
+/// Lịch sử nhập kho thuốc
+model StockHistory {
+  id           String   @id @default(cuid())
+  medicineId   String   @map("medicine_id")
+  quantity     Int                          // số liều nhập thêm lần này
+  totalAfter   Int      @map("total_after") // tổng tồn kho sau khi nhập
+  note         String?                      // ghi chú tuỳ chọn (ví dụ: "mua tại nhà thuốc ABC")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  medicine Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+
+  @@index([medicineId, createdAt])
+  @@map("stock_history")
 }
 
 model MedicationLog {

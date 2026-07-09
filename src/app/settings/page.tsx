@@ -42,6 +42,14 @@ interface ReminderInfo {
   note?: string;
 }
 
+interface StockHistoryEntry {
+  id: string;
+  quantity: number;
+  totalAfter: number;
+  note: string | null;
+  createdAt: string;
+}
+
 export default function SettingsPage() {
   const [meds, setMeds] = useState<Medicine[] | null>(null);
   const [notifSettings, setNotifSettings] = useState<NotificationSettings | null>(null);
@@ -52,7 +60,11 @@ export default function SettingsPage() {
   const [savingNotif, setSavingNotif] = useState(false);
   // Nhập kho: key = medicineId, value = số liều đang nhập
   const [restockInput, setRestockInput] = useState<Record<string, string>>({});
+  const [restockNote, setRestockNote] = useState<Record<string, string>>({});
   const [restocking, setRestocking] = useState<string | null>(null);
+  const [stockHistory, setStockHistory] = useState<Record<string, StockHistoryEntry[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     try {
@@ -178,16 +190,37 @@ export default function SettingsPage() {
     try {
       await api(`/api/medicines/${medId}/restock`, {
         method: "POST",
-        body: JSON.stringify({ quantity: qty }),
+        body: JSON.stringify({ quantity: qty, note: restockNote[medId] || undefined }),
       });
       setRestockInput((prev) => ({ ...prev, [medId]: "" }));
+      setRestockNote((prev) => ({ ...prev, [medId]: "" }));
       setMsg(`✅ Đã nhập ${qty} liều vào kho!`);
+      // Reload medicines + lịch sử
       await load();
+      await fetchHistory(medId);
     } catch (e) {
       setMsg((e as Error).message);
     } finally {
       setRestocking(null);
     }
+  }
+
+  async function fetchHistory(medId: string) {
+    setLoadingHistory(medId);
+    try {
+      const r = await api<{ history: StockHistoryEntry[] }>(`/api/medicines/${medId}/restock`);
+      setStockHistory((prev) => ({ ...prev, [medId]: r.history }));
+    } catch {
+      // silent
+    } finally {
+      setLoadingHistory(null);
+    }
+  }
+
+  function toggleHistory(medId: string) {
+    const next = !showHistory[medId];
+    setShowHistory((prev) => ({ ...prev, [medId]: next }));
+    if (next && !stockHistory[medId]) fetchHistory(medId);
   }
 
   return (
@@ -257,7 +290,7 @@ export default function SettingsPage() {
                       : "— Chưa theo dõi"}
                   </span>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-2">
                   <input
                     type="number"
                     min="1"
@@ -276,6 +309,56 @@ export default function SettingsPage() {
                     {restocking === m.id ? "Đang lưu…" : "+ Nhập kho"}
                   </button>
                 </div>
+                <input
+                  type="text"
+                  placeholder="Ghi chú (tùy chọn, ví dụ: mua tại nhà thuốc ABC)"
+                  className="input w-full text-xs"
+                  value={restockNote[m.id] || ""}
+                  onChange={(e) =>
+                    setRestockNote((prev) => ({ ...prev, [m.id]: e.target.value }))
+                  }
+                />
+
+                {/* Nút xem lịch sử */}
+                <button
+                  className="mt-2 text-xs text-brand-600 dark:text-brand-400 hover:underline"
+                  onClick={() => toggleHistory(m.id)}
+                >
+                  {showHistory[m.id] ? "▲ Ẩn lịch sử" : "▼ Xem lịch sử nhập kho"}
+                </button>
+
+                {showHistory[m.id] && (
+                  <div className="mt-2 space-y-1.5">
+                    {loadingHistory === m.id ? (
+                      <p className="text-xs text-slate-400">Đang tải…</p>
+                    ) : !stockHistory[m.id]?.length ? (
+                      <p className="text-xs text-slate-400">Chưa có lịch sử nhập kho.</p>
+                    ) : (
+                      stockHistory[m.id].map((h) => (
+                        <div
+                          key={h.id}
+                          className="flex items-start justify-between rounded-lg bg-slate-50 dark:bg-slate-800/60 px-2.5 py-2"
+                        >
+                          <div>
+                            <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                              +{h.quantity} liều
+                              <span className="ml-1.5 text-slate-400">→ tổng {h.totalAfter} liều</span>
+                            </p>
+                            {h.note && (
+                              <p className="text-[11px] text-slate-500 mt-0.5">{h.note}</p>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-slate-400 shrink-0 ml-2">
+                            {new Date(h.createdAt).toLocaleDateString("vi-VN", {
+                              day: "2-digit", month: "2-digit", year: "numeric",
+                              hour: "2-digit", minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))
