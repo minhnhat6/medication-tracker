@@ -177,23 +177,9 @@ export default function DashboardPage() {
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">{it.medicine.dosage}</p>
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                {STATUS_LABEL[it.log.status]}
-              </span>
-              {/* Badge tồn kho */}
-              {it.stockDoses !== null && (
-                <span
-                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                    it.lowStock
-                      ? "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400"
-                      : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-                  }`}
-                >
-                  {it.lowStock ? `⚠️ ${it.remainingDays}ngày` : `📦 ${it.remainingDays}ngày`}
-                </span>
-              )}
-            </div>
+            <span className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
+              {STATUS_LABEL[it.log.status]}
+            </span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <DoseTile
@@ -213,7 +199,35 @@ export default function DashboardPage() {
               onToggle={() => mark(it.medicine.id, "evening", !it.log.eveningTaken)}
             />
           </div>
+
+          {/* Thanh tồn kho — luôn hiển thị nếu đang theo dõi */}
+          {it.stockDoses !== null && (
+            <div className={`mt-2.5 rounded-lg px-2.5 py-2 ${
+              it.lowStock
+                ? "bg-red-50 dark:bg-red-900/20"
+                : "bg-slate-50 dark:bg-slate-800/60"
+            }`}>
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className={`font-medium ${it.lowStock ? "text-red-600 dark:text-red-400" : "text-slate-600 dark:text-slate-400"}`}>
+                  {it.lowStock ? "⚠️ Sắp hết thuốc!" : "📦 Tồn kho"}
+                </span>
+                <span className={`font-semibold ${it.lowStock ? "text-red-700 dark:text-red-300" : "text-slate-800 dark:text-slate-200"}`}>
+                  {it.stockDoses} liều &mdash; còn {it.remainingDays} ngày
+                </span>
+              </div>
+              {/* Thanh progress */}
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    it.lowStock ? "bg-red-500" : it.remainingDays! <= 7 ? "bg-amber-500" : "bg-green-500"
+                  }`}
+                  style={{ width: `${Math.min(100, Math.max(4, (it.remainingDays! / 30) * 100))}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
+
       ))}
 
       {/* Cảnh báo sắp hết thuốc */}
