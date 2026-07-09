@@ -210,7 +210,7 @@ export default function DashboardPage() {
               : days <= 7
               ? "bg-amber-400 dark:bg-amber-400"
               : "bg-emerald-500 dark:bg-emerald-400";
-            const label = it.lowStock ? "⚠️ Sắp hết!" : "💊 Còn";
+            const label = it.lowStock ? "⚠️ Sắp hết!" : "💊Kho Thuốc Còn";
 
             return (
               <div className="mt-2.5 border-t border-slate-100 dark:border-slate-700/50 pt-2.5">
