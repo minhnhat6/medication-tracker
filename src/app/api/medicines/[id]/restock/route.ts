@@ -10,6 +10,9 @@ type Ctx = { params: Promise<{ id: string }> };
  * POST /api/medicines/[id]/restock
  * Nhập kho thuốc — cộng thêm số liều vào stockDoses hiện tại.
  * Body: { quantity: number }
+ *
+ * Quan trọng: KHÔNG dùng Prisma `increment` vì NULL + n = NULL trong SQL.
+ * Thay vào đó: đọc giá trị hiện tại, cộng thủ công, rồi SET mới.
  */
 export async function POST(req: Request, { params }: Ctx) {
   try {
@@ -24,18 +27,23 @@ export async function POST(req: Request, { params }: Ctx) {
       );
     }
 
+    // Đọc giá trị hiện tại trước (null → xem như 0)
+    const current = await prisma.medicine.findUnique({
+      where: { id },
+      select: { stockDoses: true },
+    });
+    const currentStock = current?.stockDoses ?? 0;
+    const newStock = currentStock + quantity;
+
     const medicine = await prisma.medicine.update({
       where: { id },
-      data: {
-        stockDoses: {
-          increment: quantity,
-        },
-      },
+      data: { stockDoses: newStock },
     });
 
     memCache.invalidate("active_medicines");
-    return NextResponse.json({ medicine });
+    return NextResponse.json({ medicine, newStock });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
+
