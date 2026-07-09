@@ -223,6 +223,33 @@ export default function SettingsPage() {
     if (next && !stockHistory[medId]) fetchHistory(medId);
   }
 
+  async function deleteHistory(medId: string, historyId: string) {
+    if (!confirm("Xóa bản ghi này? Tồn kho sẽ được hoàn trả tương ứng.")) return;
+    try {
+      await api(`/api/medicines/${medId}/restock/${historyId}`, { method: "DELETE" });
+      setMsg("✅ Đã xóa bản ghi và hoàn trả số liều.");
+      await load();
+      await fetchHistory(medId);
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+  }
+
+  async function resetStock(medId: string, mode: "zero" | "stop") {
+    const label = mode === "stop" ? "ngừng theo dõi kho" : "đặt kho về 0";
+    if (!confirm(`Bạn muốn ${label}? Thao tác này không xóa lịch sử.`)) return;
+    try {
+      await api(`/api/medicines/${medId}/reset-stock`, {
+        method: "POST",
+        body: JSON.stringify({ mode }),
+      });
+      setMsg(mode === "stop" ? "✅ Đã ngừng theo dõi tồn kho." : "✅ Đã đặt lại tồn kho về 0.");
+      await load();
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <PageTitle title="Cài đặt" />
@@ -319,6 +346,25 @@ export default function SettingsPage() {
                   }
                 />
 
+                {/* Nút xả kho / ngừng theo dõi */}
+                {m.stockDoses !== null && (
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline"
+                      onClick={() => resetStock(m.id, "zero")}
+                    >
+                      ↺ Đặt về 0
+                    </button>
+                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                    <button
+                      className="text-[11px] text-red-500 hover:underline"
+                      onClick={() => resetStock(m.id, "stop")}
+                    >
+                      ✕ Ngừng theo dõi
+                    </button>
+                  </div>
+                )}
+
                 {/* Nút xem lịch sử */}
                 <button
                   className="mt-2 text-xs text-brand-600 dark:text-brand-400 hover:underline"
@@ -339,7 +385,7 @@ export default function SettingsPage() {
                           key={h.id}
                           className="flex items-start justify-between rounded-lg bg-slate-50 dark:bg-slate-800/60 px-2.5 py-2"
                         >
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
                               +{h.quantity} liều
                               <span className="ml-1.5 text-slate-400">→ tổng {h.totalAfter} liều</span>
@@ -347,13 +393,20 @@ export default function SettingsPage() {
                             {h.note && (
                               <p className="text-[11px] text-slate-500 mt-0.5">{h.note}</p>
                             )}
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              {new Date(h.createdAt).toLocaleDateString("vi-VN", {
+                                day: "2-digit", month: "2-digit", year: "numeric",
+                                hour: "2-digit", minute: "2-digit",
+                              })}
+                            </p>
                           </div>
-                          <span className="text-[11px] text-slate-400 shrink-0 ml-2">
-                            {new Date(h.createdAt).toLocaleDateString("vi-VN", {
-                              day: "2-digit", month: "2-digit", year: "numeric",
-                              hour: "2-digit", minute: "2-digit",
-                            })}
-                          </span>
+                          <button
+                            className="ml-2 shrink-0 text-[11px] text-red-400 hover:text-red-600 dark:hover:text-red-300"
+                            onClick={() => deleteHistory(m.id, h.id)}
+                            title="Xóa bản ghi này (hoàn trả số liều)"
+                          >
+                            ✕ Xóa
+                          </button>
                         </div>
                       ))
                     )}
