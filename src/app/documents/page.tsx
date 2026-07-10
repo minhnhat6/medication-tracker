@@ -42,6 +42,32 @@ export default function DocumentsPage() {
     load();
   }, [load]);
 
+async function compressImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+      const MAX = 1600;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height *= MAX / width; width = MAX; }
+        else { width *= MAX / height; height = MAX; }
+      }
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(new File([blob], file.name, { type: "image/jpeg" }));
+        } else resolve(file);
+      }, "image/jpeg", 0.7);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
   async function upload(e: React.FormEvent) {
     e.preventDefault();
     const files = fileRef.current?.files;
@@ -50,8 +76,9 @@ export default function DocumentsPage() {
     setError("");
     try {
       const fd = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        fd.append(`file_${i}`, files[i]);
+      const compressedFiles = await Promise.all(Array.from(files).map(compressImage));
+      for (let i = 0; i < compressedFiles.length; i++) {
+        fd.append(`file_${i}`, compressedFiles[i]);
       }
       fd.append("title", title);
       fd.append("category", category);
