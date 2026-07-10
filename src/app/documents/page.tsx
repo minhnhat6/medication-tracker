@@ -7,7 +7,8 @@ interface Doc {
   id: string;
   title: string;
   category: string;
-  fileUrl: string;
+  fileUrl: string | null;
+  fileUrls?: string[];
   visitDate: string | null;
   notes: string | null;
   createdAt: string;
@@ -43,13 +44,15 @@ export default function DocumentsPage() {
 
   async function upload(e: React.FormEvent) {
     e.preventDefault();
-    const file = fileRef.current?.files?.[0];
-    if (!file) return setError("Chọn tệp trước đã.");
+    const files = fileRef.current?.files;
+    if (!files || files.length === 0) return setError("Chọn ít nhất một tệp.");
     setBusy(true);
     setError("");
     try {
       const fd = new FormData();
-      fd.append("file", file);
+      for (let i = 0; i < files.length; i++) {
+        fd.append("files", files[i]);
+      }
       fd.append("title", title);
       fd.append("category", category);
       if (visitDate) fd.append("visitDate", visitDate);
@@ -114,7 +117,7 @@ export default function DocumentsPage() {
           </div>
           <div>
             <label className="label">Tệp (PDF, ảnh, DICOM…)</label>
-            <input ref={fileRef} type="file" className="input" required />
+            <input ref={fileRef} type="file" multiple className="input" required />
           </div>
           <div>
             <label className="label">Ghi chú</label>
@@ -140,11 +143,18 @@ export default function DocumentsPage() {
         <div className="space-y-2">
           {items.map((d) => (
             <div key={d.id} className="card flex items-center gap-3">
-              <span className="text-2xl">{iconFor(d.category)}</span>
-              <div className="flex-1">
-                <a href={d.fileUrl} target="_blank" rel="noreferrer" className="font-medium text-brand-600 underline">
+              <span className="text-2xl mt-1">{iconFor(d.category)}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                   {d.title}
-                </a>
+                </p>
+                <div className="flex flex-wrap gap-1.5 my-1.5">
+                  {(d.fileUrls && d.fileUrls.length > 0 ? d.fileUrls : (d.fileUrl ? [d.fileUrl] : [])).map((url, idx) => (
+                    <a key={idx} href={url} target="_blank" rel="noreferrer" className="inline-block px-2 py-1 text-xs font-medium text-brand-600 bg-brand-50 dark:bg-brand-950/40 dark:text-brand-300 rounded hover:underline">
+                      Xem tệp {idx + 1}
+                    </a>
+                  ))}
+                </div>
                 <p className="text-xs text-slate-500">
                   {d.category}
                   {d.visitDate ? ` · Khám ${new Date(d.visitDate).toLocaleDateString("vi-VN")}` : ""}

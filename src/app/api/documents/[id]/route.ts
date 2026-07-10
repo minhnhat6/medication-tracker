@@ -32,9 +32,16 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   try {
     const { id } = await params;
     const doc = await prisma.medicalDocument.findUnique({ where: { id } });
-    if (doc?.filePath && supabaseConfigured) {
+    if (doc && supabaseConfigured) {
       try {
-        await getSupabaseAdmin().storage.from(STORAGE_BUCKET).remove([doc.filePath]);
+        const pathsToDelete = [...(doc.filePaths || [])];
+        if (doc.filePath && !pathsToDelete.includes(doc.filePath)) {
+          pathsToDelete.push(doc.filePath);
+        }
+        
+        if (pathsToDelete.length > 0) {
+          await getSupabaseAdmin().storage.from(STORAGE_BUCKET).remove(pathsToDelete);
+        }
       } catch {
         /* bỏ qua lỗi xóa file, vẫn xóa bản ghi */
       }

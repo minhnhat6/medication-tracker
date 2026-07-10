@@ -110,8 +110,10 @@ model MedicalDocument {
   id        String   @id @default(cuid())
   title     String
   category  String // đơn thuốc, PDF, ảnh, EEG, MRI, CT, phiếu khám
-  fileUrl   String   @map("file_url")
+  fileUrl   String?   @map("file_url")
   filePath  String?  @map("file_path") // path trong Supabase Storage (để xóa)
+  fileUrls  String[] @map("file_urls") @default([])
+  filePaths String[] @map("file_paths") @default([])
   visitDate DateTime? @db.Date @map("visit_date")
   notes     String?
   createdAt DateTime @default(now()) @map("created_at")

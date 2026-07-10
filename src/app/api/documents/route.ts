@@ -16,42 +16,64 @@ export async function GET() {
   }
 }
 
-/** POST multipart/form-data: file, title, category, visitDate?, notes? */
+/** POST multipart/form-data: files, title, category, visitDate?, notes? */
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
-    const file = form.get("file") as File | null;
+    const files = form.getAll("files") as File[];
     const title = String(form.get("title") || "").trim();
     const category = String(form.get("category") || "Khác").trim();
     const visitDate = form.get("visitDate") ? String(form.get("visitDate")) : null;
     const notes = form.get("notes") ? String(form.get("notes")) : null;
 
     if (!title) return bad("Thiếu tiêu đề.");
-    if (!file || typeof file === "string") return bad("Thiếu tệp đính kèm.");
+    
+    // Backward compatible with old single 'file' input just in case
+    const singleFile = form.get("file") as File | null;
+    const allFiles = files.length > 0 ? files : (singleFile ? [singleFile] : []);
+    
+    if (allFiles.length === 0 || allFiles.some(f => typeof f === "string")) {
+      return bad("Thiếu tệp đính kèm.");
+    }
+    
     if (!supabaseConfigured)
       return bad("Chưa cấu hình Supabase Storage (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).", 501);
 
     const supabase = getSupabaseAdmin();
-    const safeName = file.name.replace(/[^\w.\-]+/g, "_");
-    const path = `docs/${Date.now()}_${safeName}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
+    
+    const fileUrls: string[] = [];
+    const filePaths: string[] = [];
 
-    const { error: upErr } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(path, buffer, {
-        contentType: file.type || "application/octet-stream",
-        upsert: false,
-      });
-    if (upErr) return bad(`Upload thất bại: ${upErr.message}`, 500);
+    // Upload files concurrently
+    await Promise.all(
+      allFiles.map(async (file) => {
+        const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+        const path = `docs/${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${safeName}`;
+        const buffer = Buffer.from(await file.arrayBuffer());
 
-    const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        const { error: upErr } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(path, buffer, {
+            contentType: file.type || "application/octet-stream",
+            upsert: false,
+          });
+        
+        if (upErr) throw new Error(`Upload thất bại: ${upErr.message}`);
+
+        const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        fileUrls.push(pub.publicUrl);
+        filePaths.push(path);
+      })
+    );
 
     const document = await prisma.medicalDocument.create({
       data: {
         title,
         category,
-        fileUrl: pub.publicUrl,
-        filePath: path,
+        fileUrl: fileUrls[0], // fallback for old UI
+        filePath: filePaths[0],
+        fileUrls,
+        filePaths,
         visitDate: visitDate ? dateOnlyUTC(visitDate) : null,
         notes,
       },
