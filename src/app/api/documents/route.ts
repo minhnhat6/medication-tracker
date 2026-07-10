@@ -20,17 +20,21 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
-    const files = form.getAll("files") as File[];
+    
+    // Extract all files dynamically since some environments deduplicate 'files' keys
+    const allFiles: File[] = [];
+    for (const [key, value] of form.entries()) {
+      if ((key.startsWith("file") || key === "files") && value instanceof File && typeof value !== "string") {
+        allFiles.push(value);
+      }
+    }
+
     const title = String(form.get("title") || "").trim();
     const category = String(form.get("category") || "Khác").trim();
     const visitDate = form.get("visitDate") ? String(form.get("visitDate")) : null;
     const notes = form.get("notes") ? String(form.get("notes")) : null;
 
     if (!title) return bad("Thiếu tiêu đề.");
-    
-    // Backward compatible with old single 'file' input just in case
-    const singleFile = form.get("file") as File | null;
-    const allFiles = files.length > 0 ? files : (singleFile ? [singleFile] : []);
     
     if (allFiles.length === 0 || allFiles.some(f => typeof f === "string")) {
       return bad("Thiếu tệp đính kèm.");

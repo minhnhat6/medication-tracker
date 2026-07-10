@@ -51,7 +51,7 @@ export default function DocumentsPage() {
     try {
       const fd = new FormData();
       for (let i = 0; i < files.length; i++) {
-        fd.append("files", files[i]);
+        fd.append(`file_${i}`, files[i]);
       }
       fd.append("title", title);
       fd.append("category", category);
